@@ -21,7 +21,7 @@ function authenticateToken(req, res, next) {
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, type solution_code FROM puzzles ORDER BY id`
+      `SELECT id, name, prompt, type, solution_code FROM puzzles ORDER BY id`
     );
     res.json(result.rows);
   } catch (err) {
@@ -36,7 +36,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, solution_code FROM puzzles WHERE id = $1`,
+      `SELECT id, name, prompt, type, solution_code FROM puzzles WHERE id = $1`,
       [id]
     );
 
