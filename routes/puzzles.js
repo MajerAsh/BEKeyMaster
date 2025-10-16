@@ -21,7 +21,7 @@ function authenticateToken(req, res, next) {
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, solution_code FROM puzzles ORDER BY id`
+      `SELECT id, name, prompt, type solution_code FROM puzzles ORDER BY id`
     );
     res.json(result.rows);
   } catch (err) {
