@@ -28,7 +28,7 @@ async function seedPuzzles() {
     for (const puzzle of puzzles) {
       await pool.query(
         `INSERT INTO puzzles (name, prompt, solution_code) VALUES ($1, $2, $3)`,
-        [puzzle.name, puzzle.prompt, puzzle.solution_code]
+        [puzzle.name, puzzle.prompt, puzzle.type, puzzle.solution_code]
       );
     }
 
