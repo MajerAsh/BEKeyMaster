@@ -11,7 +11,7 @@ async function seedPuzzles() {
     // Clear existing puzzles (optional)
     await pool.query("DELETE FROM puzzles");
 
-    // Example: Pin tumbler lock puzzle
+    // Example: Pin tumbler puzzle
     const puzzles = [
       {
         name: "The Vault",
