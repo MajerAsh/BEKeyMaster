@@ -11,21 +11,24 @@ async function seedPuzzles() {
     // Clear existing puzzles (optional)
     await pool.query("DELETE FROM puzzles");
 
-    // Example: Pin tumbler lock puzzle
+    // Example: Pin tumbler puzzle
     const puzzles = [
       {
-        name: "The Vault",
-        prompt: "Align all 5 pins to the correct height to unlock the vault.",
+        name: "Pin Tumbler Lock",
+        prompt:
+          "Align all 5 pins to the correct height to unlock the cabinet and get the treat.",
         solution_code: JSON.stringify([40, 30, 50, 20, 60]), // stored as a stringified array
       },
       {
-        name: "Simple Dial Lock",
-        prompt: "Set the combination to unlock the dial: 3-1-4",
+        name: "Dial Lock",
+        prompt:
+          "Follow the tips to find each number of the 3 number combination to unlock the treat.",
         solution_code: JSON.stringify([3, 1, 4]),
       },
     ];
 
     for (const puzzle of puzzles) {
+      // Provide exactly 3 params for 3 placeholders.
       await pool.query(
         `INSERT INTO puzzles (name, prompt, solution_code) VALUES ($1, $2, $3)`,
         [puzzle.name, puzzle.prompt, puzzle.solution_code]

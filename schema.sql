@@ -17,6 +17,7 @@ CREATE TABLE puzzles (
   prompt TEXT NOT NULL,
   solution_code TEXT NOT NULL, -- stringfield array '[40,30,50,20,60]' for pin heights...This makes it easy to compare submitted attempts with stored answers
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  type TEXT DEFAULT 'pin-tumbler'
 );
 
 -- Completions table (tracks solved puzzles per user, only 1x/user)
