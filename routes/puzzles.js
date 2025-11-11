@@ -99,17 +99,24 @@ router.post("/solve", authenticateToken, async (req, res) => {
 });
 
 router.post("/", authenticateToken, async (req, res) => {
-  const { name, prompt, solution_code } = req.body;
+  // Accept `type` so API-created puzzles include the same `type` column used by seeded data.
+  const { name, prompt, solution_code, type } = req.body;
 
   if (!name || !prompt || !solution_code) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
+  // Default to 'pin-tumbler' when type is not provided to keep behavior consistent with schema default
+  const puzzleType =
+    typeof type === "string" && type.trim() !== ""
+      ? type.trim()
+      : "pin-tumbler";
+
   try {
-    await db.query(
-      `INSERT INTO puzzles (name, prompt, solution_code)
-       VALUES ($1, $2, $3)`,
-      [name, prompt, JSON.stringify(solution_code)]
+    const result = await db.query(
+      `INSERT INTO puzzles (name, prompt, type, solution_code)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [name, prompt, puzzleType, JSON.stringify(solution_code)]
     );
 
     res
