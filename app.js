@@ -40,8 +40,10 @@ app.use(express.json());
 const puzzlesRouter = require("./routes/puzzles");
 const authRouter = require("./routes/auth");
 
-app.use("/auth", authRouter);
-app.use("/puzzles", puzzlesRouter);
+// Mount routers with CORS applied at the router level so preflight
+// requests for /auth and /puzzles are handled before falling through.
+app.use("/auth", cors(corsOptions), authRouter);
+app.use("/puzzles", cors(corsOptions), puzzlesRouter);
 
 // Basic route to verify server is running
 app.get("/", (req, res) => {
