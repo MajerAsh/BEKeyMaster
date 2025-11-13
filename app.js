@@ -7,7 +7,16 @@ require("dotenv").config();
 const app = express();
 
 //middleware
-app.use(cors());
+// Configure CORS to allow requests from the frontend (set CLIENT_ORIGIN in env)
+const corsOptions = {
+  origin: process.env.CLIENT_ORIGIN || "*",
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled for all routes
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 //routes:
