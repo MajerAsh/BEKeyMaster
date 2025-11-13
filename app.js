@@ -25,7 +25,12 @@ console.log("CORS configured origin:", process.env.CLIENT_ORIGIN || "*");
 // of registering a route with a potentially unsupported pattern.
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
-    return cors(corsOptions)(req, res, next);
+    // Apply CORS headers, then terminate the preflight with 204 so the
+    // request does not fall through to a 404 for OPTIONS requests.
+    return cors(corsOptions)(req, res, () => {
+      // cors middleware set the headers; respond to preflight immediately
+      res.sendStatus(204);
+    });
   }
   next();
 });
