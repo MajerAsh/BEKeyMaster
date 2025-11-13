@@ -16,7 +16,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 // Ensure preflight requests are handled for all routes
-app.options("*", cors(corsOptions));
+// Use '/*' rather than '*' to avoid path-to-regexp parsing errors in some
+// environments (some versions of path-to-regexp throw on the lone '*' token).
+app.options("/*", cors(corsOptions));
 app.use(express.json());
 
 //routes:
