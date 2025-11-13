@@ -15,10 +15,20 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-// Ensure preflight requests are handled for all routes
-// Use '/*' rather than '*' to avoid path-to-regexp parsing errors in some
-// environments (some versions of path-to-regexp throw on the lone '*' token).
-app.options("/*", cors(corsOptions));
+
+// Log the configured CLIENT_ORIGIN for debugging in deployed environments
+console.log("CORS configured origin:", process.env.CLIENT_ORIGIN || "*");
+
+// Ensure preflight requests are handled for all routes.
+// Some router/path-to-regexp combinations reject patterns like '*' or '/*',
+// so use a small middleware that handles OPTIONS requests explicitly instead
+// of registering a route with a potentially unsupported pattern.
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
 app.use(express.json());
 
 //routes:
