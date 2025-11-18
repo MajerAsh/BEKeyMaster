@@ -1,5 +1,6 @@
 // Start server (wait for DB pool to be initialized to avoid first-request latency)
 require("dotenv").config();
+
 const app = require("./app");
 const db = require("./db/index");
 const PORT = process.env.PORT || 3001;
