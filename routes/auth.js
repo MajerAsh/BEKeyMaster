@@ -1,5 +1,4 @@
-//login/sign up routes in routes/auth.js:
-
+//login/sign up routes in routes
 const express = require("express");
 const router = express.Router();
 const db = require("../db/index");
@@ -41,7 +40,7 @@ router.post("/signup", async (req, res) => {
     res.json({ token, user: { id: user.id, email: user.email } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Signup failed" });
+    res.status(500).json({ error: "😖 Signup failed" });
   }
 });
 
@@ -55,14 +54,14 @@ router.post("/login", async (req, res) => {
     ]);
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "🪪 Invalid credentials" });
     }
 
     const user = result.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "🪪 Invalid credentials" });
     }
 
     const token = jwt.sign(
@@ -73,7 +72,7 @@ router.post("/login", async (req, res) => {
     res.json({ token, user: { id: user.id, email: user.email } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: "😖 Login failed" });
   }
 });
 
