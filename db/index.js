@@ -3,16 +3,14 @@ const { Pool } = require("pg");
 const dns = require("dns").promises;
 require("dotenv").config();
 
-// Create a connection pool using DATABASE_URL from .env
-// Enable SSL only when DATABASE_URL points to a remote host (not localhost).
-// Local Postgres typically does not support SSL and will return the error
-// "The server does not support SSL connections" if ssl is forced.
+/* Create a connection pool using DATABASE_URL from .env
+ Enable SSL only when DATABASE_URL points to a remote host (not localhost).
+ Local Postgres typically does not support SSL and will return the error
+ "The server does not support SSL connections" if ssl is forced.*/
 const connectionString = process.env.DATABASE_URL;
 const useSsl = connectionString && !connectionString.includes("localhost");
 
-// Helper to build a Pool. Some cloud environments don't have IPv6 egress.
-// If the DB hostname resolves to only IPv6 addresses, try to prefer an
-// IPv4 A record so the container can reach the DB.
+/* Helper to build a Pool. Some cloud environments don't have IPv6 egress.*/
 let pool;
 const poolReady = (async () => {
   if (!connectionString) {
@@ -27,10 +25,9 @@ const poolReady = (async () => {
     const hostname = parsed.hostname;
     console.log("DB host resolved to:", hostname, "useSsl:", useSsl);
 
-    // Try to resolve IPv4 address for the hostname. If found, construct
-    // pool config with explicit host/port/user/password/database to force
-    // IPv4 TCP connect. Otherwise fall back to passing the connectionString
-    // directly to the Pool.
+    /* pool config with explicit host/port/user/password/database to force
+  IPv4 TCP connect. Otherwise fall back to passing the connectionString
+  directly to the Pool.*/
     try {
       const addrs = await dns.lookup(hostname, { all: true });
       const ipv4 = addrs.find((a) => a.family === 4);
