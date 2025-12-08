@@ -69,8 +69,8 @@ const poolReady = (async () => {
   return pool;
 })();
 
-// Reusable async-safe query helper. Callers can use db.query(text, params)
-// and it will wait until the pool is ready.
+/* Reusable async-safe query helper. Callers can use db.query(text, params)
+ it will wait until the pool is ready.*/
 async function query(text, params) {
   const p = await poolReady;
   if (!p) throw new Error("Database pool not configured");
@@ -79,6 +79,6 @@ async function query(text, params) {
 
 module.exports = {
   query,
-  // expose the poolReady promise for any diagnostics/tests
+  // expose the poolReady promise for diagnostics/tests
   poolReady,
 };
