@@ -30,7 +30,7 @@ async function seedPuzzles() {
     ];
 
     for (const puzzle of puzzles) {
-      // Provide exactly 3 params for 3 placeholders.
+      //  3 params for 3 placeholders
       await pool.query(
         `INSERT INTO puzzles (name, prompt, type, solution_code) VALUES ($1, $2, $3, $4)`,
         [puzzle.name, puzzle.prompt, puzzle.type, puzzle.solution_code]
