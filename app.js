@@ -19,14 +19,14 @@ app.use(cors(corsOptions));
 // Log the configured CLIENT_ORIGIN for debugging in deployed environments
 console.log("CORS configured origin:", process.env.CLIENT_ORIGIN || "*");
 
-// Ensure preflight requests are handled for all routes.
-// Some router/path-to-regexp combinations reject patterns like '*' or '/*',
-// so use a small middleware that handles OPTIONS requests explicitly instead
-// of registering a route with a potentially unsupported pattern.
+/* Ensure preflight requests are handled for all routes.
+ Some router/path-to-regexp combinations reject patterns like '*' or '/*',
+so using a small middleware that handles OPTIONS requests instead
+of registering a route with a potentially unsupported pattern.*/
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
-    // Apply CORS headers, then terminate the preflight with 204 so the
-    // request does not fall through to a 404 for OPTIONS requests.
+    /* Apply CORS headers, then terminate the preflight with 204 so the
+     request does not fall through to a 404 for OPTIONS requests.*/
     return cors(corsOptions)(req, res, () => {
       // cors middleware set the headers; respond to preflight immediately
       res.sendStatus(204);
@@ -40,8 +40,8 @@ app.use(express.json());
 const puzzlesRouter = require("./routes/puzzles");
 const authRouter = require("./routes/auth");
 
-// Mount routers with CORS applied at the router level so preflight
-// requests for /auth and /puzzles are handled before falling through.
+/* Mount routers with CORS applied at the router level so preflight
+ requests for /auth and /puzzles are handled before falling through.*/
 app.use("/auth", cors(corsOptions), authRouter);
 app.use("/puzzles", cors(corsOptions), puzzlesRouter);
 
