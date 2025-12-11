@@ -8,8 +8,8 @@ const pool = new Pool({
 
 async function seedPuzzles() {
   try {
-    // Clear existing puzzles (optional)
-    await pool.query("DELETE FROM puzzles");
+    // Seed puzzles without deleting existing rows so we don't lose custom data.
+    // For each puzzle, insert only if a puzzle with the same name does not exist.
 
     // Example: Pin tumbler puzzle
     const puzzles = [
@@ -30,11 +30,20 @@ async function seedPuzzles() {
     ];
 
     for (const puzzle of puzzles) {
-      //  3 params for 3 placeholders
-      await pool.query(
-        `INSERT INTO puzzles (name, prompt, type, solution_code) VALUES ($1, $2, $3, $4)`,
-        [puzzle.name, puzzle.prompt, puzzle.type, puzzle.solution_code]
+      // Check if a puzzle with the same name already exists. If not, insert it.
+      const exists = await pool.query(
+        `SELECT id FROM puzzles WHERE name = $1`,
+        [puzzle.name]
       );
+      if (exists.rowCount === 0) {
+        await pool.query(
+          `INSERT INTO puzzles (name, prompt, type, solution_code) VALUES ($1, $2, $3, $4)`,
+          [puzzle.name, puzzle.prompt, puzzle.type, puzzle.solution_code]
+        );
+        console.log(`Inserted puzzle: ${puzzle.name}`);
+      } else {
+        console.log(`Puzzle already exists, skipping: ${puzzle.name}`);
+      }
     }
 
     console.log("🍾 Puzzles seeded successfully.");

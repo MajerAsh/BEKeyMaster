@@ -39,11 +39,13 @@ app.use(express.json());
 //routes:
 const puzzlesRouter = require("./routes/puzzles");
 const authRouter = require("./routes/auth");
+const scoresRouter = require("./routes/scores");
 
 /* Mount routers with CORS applied at the router level so preflight
  requests for /auth and /puzzles are handled before falling through.*/
 app.use("/auth", cors(corsOptions), authRouter);
 app.use("/puzzles", cors(corsOptions), puzzlesRouter);
+app.use("/scores", cors(corsOptions), scoresRouter);
 
 // Basic route to verify server is running
 app.get("/", (req, res) => {
