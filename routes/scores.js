@@ -68,7 +68,7 @@ router.post("/", authenticateToken, async (req, res) => {
     let awardedBadge = null;
     if (badgeKey) {
       const badgeRes = await client.query(
-        "SELECT id, key, name, svg_path, bonus_points FROM badges WHERE key=$1",
+        "SELECT id, badge_key AS key, name, svg_path, bonus_points FROM badges WHERE badge_key=$1",
         [badgeKey]
       );
       if (badgeRes.rowCount) {
@@ -120,7 +120,7 @@ router.post("/", authenticateToken, async (req, res) => {
     );
     const badges = (
       await db.query(
-        "SELECT b.key, b.name, b.svg_path FROM badges b JOIN player_badges pb ON pb.badge_id = b.id WHERE pb.player_id = $1",
+        "SELECT b.badge_key AS key, b.name, b.svg_path FROM badges b JOIN player_badges pb ON pb.badge_id = b.id WHERE pb.player_id = $1",
         [playerId]
       )
     ).rows;
@@ -152,7 +152,7 @@ router.get("/leaderboard", async (req, res) => {
       COALESCE(bc.badge_count, 0) AS puzzles_completed,
       COALESCE(SUM(s.points), 0) AS total_points,
       MIN(s.elapsed_seconds) AS best_time,
-      COALESCE(json_agg(DISTINCT b.key) FILTER (WHERE b.key IS NOT NULL), '[]') AS badges
+      COALESCE(json_agg(DISTINCT b.badge_key) FILTER (WHERE b.badge_key IS NOT NULL), '[]') AS badges
     FROM users u
     LEFT JOIN scores s ON s.player_id = u.id
     LEFT JOIN (
@@ -240,7 +240,7 @@ router.post("/", async (req, res) => {
 
     if (badgeKey) {
       const bq = await db.query(
-        `SELECT id, key, name, svg_path, bonus_points FROM badges WHERE key=$1`,
+        `SELECT id, badge_key AS key, name, svg_path, bonus_points FROM badges WHERE badge_key=$1`,
         [badgeKey]
       );
       if (bq.rows.length) {
@@ -401,7 +401,7 @@ router.post("/", authenticateToken, async (req, res) => {
         ? "badge_diallock"
         : "badge_pintumbler";
     const badgeRes = await client.query(
-      "SELECT id, key, name, icon_url FROM badges WHERE key=$1",
+      "SELECT id, badge_key AS key, name, icon_url FROM badges WHERE badge_key=$1",
       [badgeKey]
     );
     if (badgeRes.rowCount) {
@@ -417,7 +417,7 @@ router.post("/", authenticateToken, async (req, res) => {
     // Return player's badges and score summary
     const badges = (
       await client.query(
-        `SELECT b.key, b.name, b.icon_url FROM badges b JOIN player_badges pb ON pb.badge_id = b.id WHERE pb.player_id = $1`,
+        `SELECT b.badge_key AS key, b.name, b.icon_url FROM badges b JOIN player_badges pb ON pb.badge_id = b.id WHERE pb.player_id = $1`,
         [playerId]
       )
     ).rows;
@@ -441,11 +441,11 @@ router.get("/leaderboard", async (req, res) => {
       COALESCE(bc.badge_count, 0) AS puzzles_completed,
       COALESCE(SUM(s.points), 0) AS total_points,
       MIN(s.elapsed_seconds) AS best_time,
-      COALESCE(json_agg(DISTINCT b.key) FILTER (WHERE b.key IS NOT NULL), '[]') AS badges
+      COALESCE(json_agg(DISTINCT b.badge_key) FILTER (WHERE b.badge_key IS NOT NULL), '[]') AS badges
     FROM users u
     LEFT JOIN scores s ON s.player_id = u.id
     LEFT JOIN (
-      SELECT player_id, COUNT(DISTINCT b.key) AS badge_count
+      SELECT player_id, COUNT(DISTINCT b.badge_key) AS badge_count
       FROM player_badges pb JOIN badges b ON b.id = pb.badge_id
       GROUP BY player_id
     ) bc ON bc.player_id = u.id
