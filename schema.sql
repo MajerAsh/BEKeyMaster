@@ -1,3 +1,6 @@
+/*If you run schema.sql on Supabase, you can wipe everything.
+This is local only, and use additive migrations for deployed DBs.*/
+
 -- Drop existing tables in reverse dependency order
 DROP TABLE IF EXISTS completions;
 DROP TABLE IF EXISTS puzzles;
@@ -29,4 +32,3 @@ CREATE TABLE completions (
   UNIQUE(user_id, puzzle_id) -- prevent duplicate completions
 );
 
--- remember: ON DELETE CASCADE keeps your DB clean (e.g., delete user → delete their completions).

@@ -49,7 +49,7 @@ app.use("/scores", cors(corsOptions), scoresRouter);
 
 // Basic route to verify server is running
 app.get("/", (req, res) => {
-  res.send("🔑 KeyMaster API is running!");
+  res.send("🔑 KeyPaw API is running!");
 });
 
 // Health check for Railway

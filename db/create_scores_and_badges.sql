@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS badges (
 
 CREATE TABLE IF NOT EXISTS scores (
   id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   game TEXT NOT NULL,            -- 'DialLock'|'PinTumbler'
   puzzle_id TEXT,                -- optional puzzle identifier
   points INTEGER NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS scores (
 
 CREATE TABLE IF NOT EXISTS player_badges (
   id SERIAL PRIMARY KEY,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   badge_id INTEGER NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
   awarded_at timestamptz DEFAULT now(),
   UNIQUE (player_id, badge_id)
