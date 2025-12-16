@@ -81,20 +81,6 @@ router.post("/", authenticateToken, async (req, res) => {
             "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2)",
             [playerId, badge.id]
           );
-          // record bonus as separate scores row so SUM(points) includes it
-          await client.query(
-            `INSERT INTO scores (user_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
-             VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)`,
-            [
-              playerId,
-              "badge",
-              badge.key,
-              badge.bonus_points,
-              null,
-              0,
-              JSON.stringify({ awardedBadge: badge.key }),
-            ]
-          );
           awardedBadge = {
             id: badge.id,
             key: badge.key,
@@ -108,13 +94,17 @@ router.post("/", authenticateToken, async (req, res) => {
 
     await client.query("COMMIT");
 
-    // fetch updated totals and badges
-    const totals = await db.query(
-      "SELECT COALESCE(SUM(points),0)::int AS total_points FROM scores WHERE user_id=$1",
+    // fetch updated totals and badges (include badge bonus points from badges table)
+    const scoreSumRes = await db.query(
+      "SELECT COALESCE(SUM(points),0)::int AS score_points, MIN(elapsed_seconds) AS best_time FROM scores WHERE user_id=$1",
+      [playerId]
+    );
+    const badgeSumRes = await db.query(
+      "SELECT COALESCE(SUM(b.bonus_points),0)::int AS badge_points FROM user_badges pb JOIN badges b ON b.id = pb.badge_id WHERE pb.user_id = $1",
       [playerId]
     );
     const badgeCount = await db.query(
-      "SELECT COUNT(*)::int AS num_badges FROM player_badges WHERE user_id=$1",
+      "SELECT COUNT(*)::int AS num_badges FROM user_badges WHERE user_id=$1",
       [playerId]
     );
     const badges = (
@@ -123,12 +113,19 @@ router.post("/", authenticateToken, async (req, res) => {
         [playerId]
       )
     ).rows;
+    const totals = {
+      score_points: scoreSumRes.rows[0].score_points,
+      badge_points: badgeSumRes.rows[0].badge_points,
+      total_points:
+        scoreSumRes.rows[0].score_points + badgeSumRes.rows[0].badge_points,
+      best_time: scoreSumRes.rows[0].best_time,
+    };
 
     res.json({
       scoreId: r.rows[0].id,
       points,
       awardedBadge,
-      totals: totals.rows[0],
+      totals: totals,
       num_badges: badgeCount.rows[0].num_badges,
       badges,
     });
@@ -137,7 +134,7 @@ router.post("/", authenticateToken, async (req, res) => {
       await client.query("ROLLBACK");
     } catch (_) {}
     console.error("Error saving score:", err);
-    res.status(500).json({ error: "failed to save score" });
+    return res.status(500).json({ error: "failed to save score" });
   }
 });
 
@@ -146,23 +143,29 @@ router.get("/leaderboard", async (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 20;
   const q = `
     SELECT
-      u.id AS player_id,
+      u.id AS user_id,
       COALESCE(u.email, '') AS username,
+      COALESCE(sp.score_points, 0) AS score_points,
       COALESCE(bc.badge_count, 0) AS puzzles_completed,
-      COALESCE(SUM(s.points), 0) AS total_points,
-      MIN(s.elapsed_seconds) AS best_time,
-      COALESCE(json_agg(DISTINCT b.badge_key) FILTER (WHERE b.badge_key IS NOT NULL), '[]') AS badges
+      COALESCE(bc.badge_points, 0) AS badge_points,
+      (COALESCE(sp.score_points, 0) + COALESCE(bc.badge_points, 0)) AS total_points,
+      sp.best_time,
+      COALESCE(bc.badges, '[]') AS badges
     FROM users u
-    LEFT JOIN scores s ON s.user_id = u.id
     LEFT JOIN (
-      SELECT user_id, COUNT(DISTINCT b.badge_key) AS badge_count
-      FROM user_badges pb JOIN badges b ON b.id = pb.badge_id
+      SELECT user_id, COALESCE(SUM(points),0) AS score_points, MIN(elapsed_seconds) AS best_time
+      FROM scores
       GROUP BY user_id
+    ) sp ON sp.user_id = u.id
+    LEFT JOIN (
+      SELECT pb.user_id,
+             COUNT(DISTINCT b.badge_key) AS badge_count,
+             COALESCE(SUM(b.bonus_points),0) AS badge_points,
+             COALESCE(json_agg(DISTINCT b.badge_key) FILTER (WHERE b.badge_key IS NOT NULL), '[]') AS badges
+      FROM user_badges pb JOIN badges b ON b.id = pb.badge_id
+      GROUP BY pb.user_id
     ) bc ON bc.user_id = u.id
-    LEFT JOIN user_badges pb2 ON pb2.user_id = u.id
-    LEFT JOIN badges b ON b.id = pb2.badge_id
-    GROUP BY u.id, u.email, bc.badge_count
-    ORDER BY puzzles_completed DESC, total_points DESC, best_time ASC
+    ORDER BY puzzles_completed DESC, total_points DESC, sp.best_time ASC
     LIMIT $1
   `;
 
