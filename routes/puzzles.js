@@ -21,9 +21,14 @@ function authenticateToken(req, res, next) {
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, type FROM puzzles ORDER BY id`
+      `SELECT id, name, prompt, type, solution_code FROM puzzles ORDER BY id`
     );
-    res.json(result.rows);
+    // ensure we never return solution_code to clients; keep it server-side only
+    const safe = result.rows.map((r) => {
+      const { solution_code, ...rest } = r;
+      return rest;
+    });
+    res.json(safe);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load puzzles" });
@@ -36,7 +41,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, type FROM puzzles WHERE id = $1`,
+      `SELECT id, name, prompt, type, solution_code FROM puzzles WHERE id = $1`,
       [id]
     );
 
@@ -44,7 +49,8 @@ router.get("/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Puzzle not found" });
     }
 
-    res.json(result.rows[0]);
+    const { solution_code, ...safeRow } = result.rows[0];
+    res.json(safeRow);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error fetching puzzle" });
@@ -99,11 +105,9 @@ router.post("/solve", authenticateToken, async (req, res) => {
 
 // Puzzle creation via API is disabled to prevent accidental data loss or leaking solutions.
 router.post("/", authenticateToken, async (req, res) => {
-  return res
-    .status(403)
-    .json({
-      error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
-    });
+  return res.status(403).json({
+    error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
+  });
 });
 
 module.exports = router;

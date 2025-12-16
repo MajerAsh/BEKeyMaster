@@ -29,15 +29,23 @@ router.post("/", authenticateToken, async (req, res) => {
   if (elapsedSeconds < 0 || elapsedSeconds > 60 * 60)
     return res.status(400).json({ error: "invalid elapsedSeconds" });
 
-  const { points, raw, attemptsPenalty, elapsed } = computeScore({
-    game,
-    elapsedSeconds,
-    attempts,
-  });
+  let points, raw, attemptsPenalty, elapsed;
+  try {
+    ({ points, raw, attemptsPenalty, elapsed } = computeScore({
+      game,
+      elapsedSeconds,
+      attempts,
+    }));
+  } catch (err) {
+    return res.status(400).json({
+      error: err && err.message ? err.message : "invalid score parameters",
+    });
+  }
 
-  const client = await db.poolReady;
-  if (!client) return res.status(500).json({ error: "database unavailable" });
+  const pool = await db.poolReady;
+  if (!pool) return res.status(500).json({ error: "database unavailable" });
 
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
@@ -135,6 +143,10 @@ router.post("/", authenticateToken, async (req, res) => {
     } catch (_) {}
     console.error("Error saving score:", err);
     return res.status(500).json({ error: "failed to save score" });
+  } finally {
+    try {
+      client.release();
+    } catch (_) {}
   }
 });
 
@@ -145,15 +157,23 @@ router.get("/leaderboard", async (req, res) => {
     SELECT
       u.id AS user_id,
       COALESCE(u.email, '') AS username,
+      COALESCE(sp.dial_points, 0) AS dial_points,
+      COALESCE(sp.pin_points, 0) AS pin_points,
       COALESCE(sp.score_points, 0) AS score_points,
       COALESCE(bc.badge_count, 0) AS puzzles_completed,
       COALESCE(bc.badge_points, 0) AS badge_points,
       (COALESCE(sp.score_points, 0) + COALESCE(bc.badge_points, 0)) AS total_points,
       sp.best_time,
+      (COALESCE(sp.dial_points,0) > 0 AND COALESCE(sp.pin_points,0) > 0) AS has_both,
       COALESCE(bc.badges, '[]') AS badges
     FROM users u
     LEFT JOIN (
-      SELECT user_id, COALESCE(SUM(points),0) AS score_points, MIN(elapsed_seconds) AS best_time
+      SELECT
+        user_id,
+        COALESCE(SUM(points) FILTER (WHERE game = 'DialLock'), 0) AS dial_points,
+        COALESCE(SUM(points) FILTER (WHERE game = 'PinTumbler'), 0) AS pin_points,
+        COALESCE(SUM(points),0) AS score_points,
+        MIN(elapsed_seconds) AS best_time
       FROM scores
       GROUP BY user_id
     ) sp ON sp.user_id = u.id
