@@ -42,7 +42,7 @@ router.post("/", authenticateToken, async (req, res) => {
     await client.query("BEGIN");
 
     const insertQ = `
-      INSERT INTO scores (player_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
+      INSERT INTO scores (user_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)
       RETURNING id, created_at
     `;
@@ -73,17 +73,17 @@ router.post("/", authenticateToken, async (req, res) => {
       if (badgeRes.rowCount) {
         const badge = badgeRes.rows[0];
         const exists = await client.query(
-          "SELECT 1 FROM player_badges WHERE player_id=$1 AND badge_id=$2",
+          "SELECT 1 FROM user_badges WHERE user_id=$1 AND badge_id=$2",
           [playerId, badge.id]
         );
         if (exists.rowCount === 0) {
           await client.query(
-            "INSERT INTO player_badges (player_id, badge_id) VALUES ($1,$2)",
+            "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2)",
             [playerId, badge.id]
           );
           // record bonus as separate scores row so SUM(points) includes it
           await client.query(
-            `INSERT INTO scores (player_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
+            `INSERT INTO scores (user_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
              VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)`,
             [
               playerId,
@@ -110,16 +110,16 @@ router.post("/", authenticateToken, async (req, res) => {
 
     // fetch updated totals and badges
     const totals = await db.query(
-      "SELECT COALESCE(SUM(points),0)::int AS total_points FROM scores WHERE player_id=$1",
+      "SELECT COALESCE(SUM(points),0)::int AS total_points FROM scores WHERE user_id=$1",
       [playerId]
     );
     const badgeCount = await db.query(
-      "SELECT COUNT(*)::int AS num_badges FROM player_badges WHERE player_id=$1",
+      "SELECT COUNT(*)::int AS num_badges FROM player_badges WHERE user_id=$1",
       [playerId]
     );
     const badges = (
       await db.query(
-        "SELECT b.badge_key AS key, b.name, b.svg_path FROM badges b JOIN player_badges pb ON pb.badge_id = b.id WHERE pb.player_id = $1",
+        "SELECT b.badge_key AS key, b.name, b.svg_path FROM badges b JOIN user_badges pb ON pb.badge_id = b.id WHERE pb.user_id = $1",
         [playerId]
       )
     ).rows;
@@ -153,13 +153,13 @@ router.get("/leaderboard", async (req, res) => {
       MIN(s.elapsed_seconds) AS best_time,
       COALESCE(json_agg(DISTINCT b.badge_key) FILTER (WHERE b.badge_key IS NOT NULL), '[]') AS badges
     FROM users u
-    LEFT JOIN scores s ON s.player_id = u.id
+    LEFT JOIN scores s ON s.user_id = u.id
     LEFT JOIN (
-      SELECT player_id, COUNT(DISTINCT b.badge_key) AS badge_count
-      FROM player_badges pb JOIN badges b ON b.id = pb.badge_id
-      GROUP BY player_id
-    ) bc ON bc.player_id = u.id
-    LEFT JOIN player_badges pb2 ON pb2.player_id = u.id
+      SELECT user_id, COUNT(DISTINCT b.badge_key) AS badge_count
+      FROM user_badges pb JOIN badges b ON b.id = pb.badge_id
+      GROUP BY user_id
+    ) bc ON bc.user_id = u.id
+    LEFT JOIN user_badges pb2 ON pb2.user_id = u.id
     LEFT JOIN badges b ON b.id = pb2.badge_id
     GROUP BY u.id, u.email, bc.badge_count
     ORDER BY puzzles_completed DESC, total_points DESC, best_time ASC
