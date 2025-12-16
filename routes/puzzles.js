@@ -101,7 +101,9 @@ router.post("/solve", authenticateToken, async (req, res) => {
 router.post("/", authenticateToken, async (req, res) => {
   return res
     .status(403)
-    .json({ error: "Puzzle creation disabled. Manage puzzles via seeds/migrations." });
+    .json({
+      error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
+    });
 });
 
 module.exports = router;
