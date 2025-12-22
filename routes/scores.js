@@ -17,7 +17,7 @@ function authenticateToken(req, res, next) {
   }
 }
 
-// POST /scores - record a score, award badge if first completion for that game
+// POST /scores - record a score, award badge if first score (not necessarily first completion) for that game
 router.post("/", authenticateToken, async (req, res) => {
   const { game, puzzleId = null } = req.body;
   const elapsedSeconds = Number(req.body.elapsedSeconds);
@@ -65,7 +65,7 @@ router.post("/", authenticateToken, async (req, res) => {
       JSON.stringify(details),
     ]);
 
-    // Award badge for first completion of that game
+    // Award badge for first score (not necessarily first completion) of that game)
     const badgeKey =
       game === "DialLock"
         ? "treat_diallock"
@@ -104,7 +104,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     // fetch updated totals and badges (include badge bonus points from badges table)
     const scoreSumRes = await db.query(
-      "SELECT COALESCE(SUM(points),0)::int AS score_points, MIN(elapsed_seconds) AS best_time FROM scores WHERE user_id=$1",
+      "SELECT COALESCE(SUM(points),0)::int AS score_points, MIN(elapsed_seconds) FILTER (WHERE elapsed_seconds IS NOT NULL) AS best_time, MIN(elapsed_seconds) FILTER (WHERE game = 'DialLock' AND elapsed_seconds IS NOT NULL) AS best_dial_time, MIN(elapsed_seconds) FILTER (WHERE game = 'PinTumbler' AND elapsed_seconds IS NOT NULL) AS best_pin_time FROM scores WHERE user_id=$1",
       [playerId]
     );
     const badgeSumRes = await db.query(
@@ -127,6 +127,8 @@ router.post("/", authenticateToken, async (req, res) => {
       total_points:
         scoreSumRes.rows[0].score_points + badgeSumRes.rows[0].badge_points,
       best_time: scoreSumRes.rows[0].best_time,
+      best_dial_time: scoreSumRes.rows[0].best_dial_time,
+      best_pin_time: scoreSumRes.rows[0].best_pin_time,
     };
 
     res.json({
@@ -164,6 +166,8 @@ router.get("/leaderboard", async (req, res) => {
       COALESCE(bc.badge_points, 0) AS badge_points,
       (COALESCE(sp.score_points, 0) + COALESCE(bc.badge_points, 0)) AS total_points,
       sp.best_time,
+      sp.best_dial_time,
+      sp.best_pin_time,
       (COALESCE(sp.dial_points,0) > 0 AND COALESCE(sp.pin_points,0) > 0) AS has_both,
       COALESCE(bc.badges, '[]') AS badges
     FROM users u
@@ -173,7 +177,9 @@ router.get("/leaderboard", async (req, res) => {
         COALESCE(SUM(points) FILTER (WHERE game = 'DialLock'), 0) AS dial_points,
         COALESCE(SUM(points) FILTER (WHERE game = 'PinTumbler'), 0) AS pin_points,
         COALESCE(SUM(points),0) AS score_points,
-        MIN(elapsed_seconds) AS best_time
+        MIN(elapsed_seconds) FILTER (WHERE elapsed_seconds IS NOT NULL) AS best_time,
+        MIN(elapsed_seconds) FILTER (WHERE game = 'DialLock' AND elapsed_seconds IS NOT NULL) AS best_dial_time,
+        MIN(elapsed_seconds) FILTER (WHERE game = 'PinTumbler' AND elapsed_seconds IS NOT NULL) AS best_pin_time
       FROM scores
       GROUP BY user_id
     ) sp ON sp.user_id = u.id

@@ -1,3 +1,10 @@
+/*
+-If theres a change the puzzle’s name in code,
+ seed will insert a new row (duplicate puzzle concept) 
+instead of updating the original.
+- If theres a update in prompt/type/solution, 
+seed currently won’t update it — it will “skip”.*/
+
 //Seed puzzle data
 const { Pool } = require("pg");
 require("dotenv").config();

@@ -1,12 +1,15 @@
+/* NOTE: run_migrations.js won’t “upgrade” 
+existing tables unless you add ALTER TABLE*/
+
 // Run SQL migration files in order using the existing db helper
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const db = require("./index");
 
-// NOTE: Do NOT include or run the destructive `schema.local.sql` here —
-// that file is for local development only (it drops tables). Use the
-// additive migration files in this folder for deployed environments.
+/* NOTE: Do NOT include or run the destructive `schema.local.sql` here —
+ that file is for local development only (it drops tables). Use the
+ additive migration files in this folder for deployed environments.*/
 
 async function runFile(filePath) {
   const sql = fs.readFileSync(filePath, "utf8");
