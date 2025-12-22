@@ -17,25 +17,20 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// GET /puzzles - Get all puzzles (do NOT return solution_code)
+// GET /puzzles
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
       `SELECT id, name, prompt, type, solution_code FROM puzzles ORDER BY id`
     );
-    // ensure we never return solution_code to clients; keep it server-side only
-    const safe = result.rows.map((r) => {
-      const { solution_code, ...rest } = r;
-      return rest;
-    });
-    res.json(safe);
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load puzzles" });
   }
 });
 
-// GET puzzle by ID (do NOT return solution_code)
+// GET /puzzles/:id
 router.get("/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
@@ -49,8 +44,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Puzzle not found" });
     }
 
-    const { solution_code, ...safeRow } = result.rows[0];
-    res.json(safeRow);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error fetching puzzle" });

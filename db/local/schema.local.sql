@@ -8,6 +8,9 @@
 */
 
 -- Drop existing tables in reverse dependency order
+DROP TABLE IF EXISTS user_badges;
+DROP TABLE IF EXISTS scores;
+DROP TABLE IF EXISTS badges;
 DROP TABLE IF EXISTS completions;
 DROP TABLE IF EXISTS puzzles;
 DROP TABLE IF EXISTS users;
