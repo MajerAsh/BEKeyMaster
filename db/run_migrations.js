@@ -18,31 +18,17 @@ async function run() {
   try {
     await db.poolReady;
     const base = path.join(__dirname);
-    // Prefer numbered migration files (e.g. 001_*.sql, 002_*.sql). If a
-    // newer numbered migration exists we'll use it; otherwise fall back to
-    // legacy filenames. This prevents running an older incompatible SQL file.
-    const preferredScores = path.join(base, "002_scores_badges.sql");
-    const legacyScores = path.join(base, "create_scores_and_badges.sql");
-    // We already have a `users` table used by auth; do NOT create a separate
-    // `players` table. Exclude `create_players.sql` from the default migration
-    // order to avoid duplicate identity systems.
     const files = [
-      fs.existsSync(preferredScores) ? preferredScores : legacyScores,
+      path.join(base, "001_core.sql"),
+      path.join(base, "002_scores_badges.sql"),
       path.join(base, "badges.sql"),
     ];
 
-    // Warn if both new and legacy files exist, so maintainers are aware.
-    if (fs.existsSync(preferredScores) && fs.existsSync(legacyScores)) {
-      console.warn(
-        "Both 002_scores_badges.sql and create_scores_and_badges.sql exist. Using 002_scores_badges.sql. Consider removing the legacy file to avoid confusion."
-      );
-    }
     for (const f of files) {
-      if (fs.existsSync(f)) {
-        await runFile(f);
-      } else {
-        console.log("Skipping not-found", f);
+      if (!fs.existsSync(f)) {
+        throw new Error(`Missing required migration file: ${f}`);
       }
+      await runFile(f);
     }
     console.log("Migrations complete");
   } catch (err) {
