@@ -1,9 +1,14 @@
 /*
--If theres a change the puzzle’s name in code,
- seed will insert a new row (duplicate puzzle concept) 
-instead of updating the original.
-- If theres a update in prompt/type/solution, 
-seed currently won’t update it — it will “skip”.*/
+Seed notes:
+- Puzzles: idempotent insert-if-missing by `name`.
+- Demo leaderboard data: idempotent by targeting ONLY demo users
+  (demo1/2/3@keypaw.dev) and re-seeding their scores/badges deterministically.
+
+Caveats:
+- If you rename a seeded puzzle in code, seed will insert a new row.
+- If you change prompt/type/solution_code for an existing puzzle name, seed will skip.
+  (We can switch to UPSERT + unique(name) if you want updates.)
+*/
 
 //Seed puzzle data
 const { Pool } = require("pg");
@@ -51,6 +56,111 @@ async function seedPuzzles() {
       } else {
         console.log(`Puzzle already exists, skipping: ${puzzle.name}`);
       }
+    }
+
+    // --- Demo leaderboard data (3 users + scores + badges) ---
+    // This makes it easy to validate leaderboard sorting and UI rendering.
+    await pool.query("BEGIN");
+    try {
+      const demoEmails = [
+        "demo1@keypaw.dev",
+        "demo2@keypaw.dev",
+        "demo3@keypaw.dev",
+      ];
+
+      // Upsert demo users and capture IDs
+      const userIds = {};
+      for (const email of demoEmails) {
+        const r = await pool.query(
+          `INSERT INTO users (email, password_hash)
+           VALUES ($1, 'not-a-real-hash')
+           ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+           RETURNING id`,
+          [email]
+        );
+        userIds[email] = r.rows[0].id;
+      }
+
+      // Resolve puzzle IDs by name (safer than assuming IDs)
+      const pinPuzzle = await pool.query(
+        "SELECT id FROM puzzles WHERE name = $1",
+        ["Pin Tumbler Lock"]
+      );
+      const dialPuzzle = await pool.query(
+        "SELECT id FROM puzzles WHERE name = $1",
+        ["Dial Lock"]
+      );
+      const pinPuzzleId = pinPuzzle.rowCount ? pinPuzzle.rows[0].id : null;
+      const dialPuzzleId = dialPuzzle.rowCount ? dialPuzzle.rows[0].id : null;
+
+      // Clear previous demo scores/badges (keeps seed idempotent)
+      const demoUserIdList = demoEmails.map((e) => userIds[e]);
+      await pool.query(
+        "DELETE FROM user_badges WHERE user_id = ANY($1::int[])",
+        [demoUserIdList]
+      );
+      await pool.query("DELETE FROM scores WHERE user_id = ANY($1::int[])", [
+        demoUserIdList,
+      ]);
+
+      // Insert demo scores
+      await pool.query(
+        `INSERT INTO scores (user_id, game, puzzle_id, points, elapsed_seconds, attempts, details)
+         VALUES
+           ($1, 'DialLock',   $4, 640, 43, 2, '{"raw":700,"attemptsPenalty":25}'::jsonb),
+           ($1, 'PinTumbler', $5, 820, 16, 1, '{"raw":820,"attemptsPenalty":0}'::jsonb),
+           ($2, 'DialLock',   $4, 720, 34, 1, '{"raw":720,"attemptsPenalty":0}'::jsonb),
+           ($2, 'PinTumbler', $5, 540, 42, 3, '{"raw":590,"attemptsPenalty":50}'::jsonb),
+           ($3, 'PinTumbler', $5, 900,  9, 1, '{"raw":900,"attemptsPenalty":0}'::jsonb)
+        `,
+        [
+          userIds["demo1@keypaw.dev"],
+          userIds["demo2@keypaw.dev"],
+          userIds["demo3@keypaw.dev"],
+          dialPuzzleId,
+          pinPuzzleId,
+        ]
+      );
+
+      // Award demo badges (optional)
+      const badgeIds = await pool.query(
+        "SELECT id, badge_key FROM badges WHERE badge_key IN ('treat_diallock','treat_pintumbler')"
+      );
+      const badgeIdByKey = Object.fromEntries(
+        badgeIds.rows.map((row) => [row.badge_key, row.id])
+      );
+
+      const dialBadgeId = badgeIdByKey["treat_diallock"] ?? null;
+      const pinBadgeId = badgeIdByKey["treat_pintumbler"] ?? null;
+
+      const demo1Id = userIds["demo1@keypaw.dev"];
+      const demo2Id = userIds["demo2@keypaw.dev"];
+      if (dialBadgeId) {
+        await pool.query(
+          "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+          [demo1Id, dialBadgeId]
+        );
+        await pool.query(
+          "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+          [demo2Id, dialBadgeId]
+        );
+      }
+      if (pinBadgeId) {
+        await pool.query(
+          "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+          [demo1Id, pinBadgeId]
+        );
+        await pool.query(
+          "INSERT INTO user_badges (user_id, badge_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+          [demo2Id, pinBadgeId]
+        );
+      }
+
+      await pool.query("COMMIT");
+      console.log("Inserted demo users + scores + badges for leaderboard.");
+    } catch (err) {
+      await pool.query("ROLLBACK");
+      console.error("😒 Error seeding demo leaderboard data:", err);
     }
 
     console.log("🍾 Puzzles seeded successfully.");
