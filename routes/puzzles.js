@@ -1,3 +1,8 @@
+/*Note: 
+Can not hide solution_code without redesigning both puzzles:
+PinTumbler uses solutionCode to decide whether pins are “set” (green driver)
+DialLock uses solutionCode for all the click/resistance logic*/
+
 //Fetch/create puzzles
 const express = require("express");
 const router = express.Router();
@@ -17,7 +22,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// GET /puzzles - Get all puzzles (excluding solution)
+// GET /puzzles
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
@@ -30,7 +35,7 @@ router.get("/", authenticateToken, async (req, res) => {
   }
 });
 
-// GET puzzle by ID
+// GET /puzzles/:id
 router.get("/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
@@ -70,7 +75,6 @@ router.post("/solve", authenticateToken, async (req, res) => {
 
     console.log(`🗝️ User ${user_id} is attempting puzzle ${puzzle_id}`);
     console.log("Attempt:", attempt);
-    console.log("Expected:", correct);
 
     const match =
       Array.isArray(attempt) &&
@@ -98,34 +102,11 @@ router.post("/solve", authenticateToken, async (req, res) => {
   }
 });
 
+// Puzzle creation via API is disabled to prevent accidental data loss or leaking solutions.
 router.post("/", authenticateToken, async (req, res) => {
-  // Accept `type` so API-created puzzles include the same `type` column used by seeded data.
-  const { name, prompt, solution_code, type } = req.body;
-
-  if (!name || !prompt || !solution_code) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // Default to 'pin-tumbler' when type is not provided to keep behavior consistent with schema default
-  const puzzleType =
-    typeof type === "string" && type.trim() !== ""
-      ? type.trim()
-      : "pin-tumbler";
-
-  try {
-    const result = await db.query(
-      `INSERT INTO puzzles (name, prompt, type, solution_code)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [name, prompt, puzzleType, JSON.stringify(solution_code)]
-    );
-
-    res
-      .status(201)
-      .json({ message: "Puzzle created successfully", id: result.rows[0].id });
-  } catch (err) {
-    console.error("❌ Error creating puzzle:", err);
-    res.status(500).json({ error: "Failed to create puzzle" });
-  }
+  return res.status(403).json({
+    error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
+  });
 });
 
 module.exports = router;

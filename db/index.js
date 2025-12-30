@@ -8,7 +8,20 @@ require("dotenv").config();
  Local Postgres typically does not support SSL and will return the error
  "The server does not support SSL connections" if ssl is forced.*/
 const connectionString = process.env.DATABASE_URL;
-const useSsl = connectionString && !connectionString.includes("localhost");
+//const useSsl = connectionString && !connectionString.includes("localhost");
+let useSsl = false;
+
+if (connectionString) {
+  try {
+    const { hostname } = new URL(connectionString);
+    const isLocal =
+      hostname === "localhost" || hostname === "127.0.0.1";
+    useSsl = !isLocal;
+  } catch {
+    // If parsing fails, default to no SSL locally
+    useSsl = false;
+  }
+}
 
 /* Helper to build a Pool. Some cloud environments don't have IPv6 egress.*/
 let pool;
@@ -23,7 +36,7 @@ const poolReady = (async () => {
   try {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
-    console.log("DB host resolved to:", hostname, "useSsl:", useSsl);
+    console.log("useSsl:", useSsl);
 
     /* pool config with explicit host/port/user/password/database to force
   IPv4 TCP connect. Otherwise fall back to passing the connectionString
