@@ -23,7 +23,7 @@ const poolReady = (async () => {
   try {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
-    console.log("DB host resolved to:", hostname, "useSsl:", useSsl);
+    console.log("useSsl:", useSsl);
 
     /* pool config with explicit host/port/user/password/database to force
   IPv4 TCP connect. Otherwise fall back to passing the connectionString

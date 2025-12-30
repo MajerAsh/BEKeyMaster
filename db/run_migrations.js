@@ -11,11 +11,27 @@ const db = require("./index");
  that file is for local development only (it drops tables). Use the
  additive migration files in this folder for deployed environments.*/
 
+/*BEFORE DEBUGGING
 async function runFile(filePath) {
   const sql = fs.readFileSync(filePath, "utf8");
   console.log("Running", filePath);
   await db.query(sql);
+}*/
+// AFTER/ w debugging
+async function runFile(filePath) {
+  const sql = fs.readFileSync(filePath, "utf8");
+  console.log("Running", filePath);
+
+  try {
+    await db.query(sql);
+  } catch (err) {
+    console.error("\n❌ Failed in file:", filePath);
+    console.error("Code:", err.code);
+    console.error("Message:", err.message);
+    throw err;
+  }
 }
+/////^^^^
 
 async function run() {
   try {
