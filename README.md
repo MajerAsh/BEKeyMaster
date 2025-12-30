@@ -2,8 +2,6 @@
 
 Express API for KeyPaw (the backend for the FEKeyMaster frontend). This service provides authentication, puzzle data, and completion tracking backed by PostgreSQL.
 
-> > > > > > > > > > > > > > > > > > > insert image of architecture / FE-BE-DB diagram here
-
 Quick highlights
 
 - Server: Express
