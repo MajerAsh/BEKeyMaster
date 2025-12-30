@@ -15,7 +15,9 @@ API Summary
 - `GET /puzzles` — list puzzles (Authorization required)
 - `GET /puzzles/:id` — puzzle details (Authorization required)
 - `POST /puzzles/solve` — submit attempt { puzzle_id, attempt } → { success: boolean }
-- `POST /puzzles` — create puzzle (protected)
+- `POST /puzzles` — disabled (returns 403)
+- `POST /scores` — record a score + (optional) award badge (Authorization required)
+- `GET /scores/leaderboard` — leaderboard (no auth)
 
 Environment
 
@@ -44,12 +46,26 @@ node server.js
 
 Database & seeding
 
-- Schema: `schema.sql` (tables: users, puzzles, completions)
-- Demo data: `db/seed.js` (NOTE: this script currently runs `DELETE FROM puzzles` before inserting demo rows — do not run against production)
+- This backend uses additive SQL migrations (no destructive drops) in `db/`:
+  - `db/001_core.sql` (users, puzzles, completions)
+  - `db/002_scores_badges.sql` (scores, badges, user_badges)
+  - `db/badges.sql` (badge seed rows)
+- Migration runner: `db/run_migrations.js` (runs the files above in order).
+  - Note: it primarily uses `CREATE TABLE IF NOT EXISTS` and will not “upgrade” existing tables unless you add `ALTER TABLE` statements.
+  - It is not called by `npm start` / `npm run dev`; you run it manually (or via your deploy pipeline).
+- Seeding: `db/seed.js`
+  - Puzzles are inserted only if missing (by puzzle name).
+  - Demo leaderboard seed creates 3 demo users (`demo1/2/3@keypaw.dev`) and inserts demo scores/badges.
+  - It keeps re-runs deterministic by deleting ONLY the demo users’ rows in `scores` + `user_badges`.
+  - Don’t run it against production unless you actually want those demo accounts/data.
+
+Local reset (destructive)
+
+- `db/local/schema.local.sql` is for local-only full resets (drops tables in FK-safe order). Never run it on hosted databases.
 
 Safe edits
 
-- To update a prompt without reseeding:
+- To update a prompt without reseeding, update by `id` (or by `name`):
 
 ```sql
 UPDATE puzzles
@@ -82,6 +98,7 @@ Security & production notes
 Deployment
 
 - Railway / Render: set `DATABASE_URL`, `JWT_SECRET`, and `CLIENT_ORIGIN` in the service settings and deploy. Check startup logs for DB pool initialization.
+- Supabase note: merging to GitHub does not automatically apply these SQL migrations to your Supabase database. You must run migrations explicitly (manual run or CI).
 
 Contact & next steps
 
