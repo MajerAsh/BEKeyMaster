@@ -1,113 +1,119 @@
-# KeyPaw — Backend (BEKeyMaster)
+# KeyPaw Backend API (BEKeyMaster)
 
-Express API for KeyPaw (the backend for the FEKeyMaster frontend). This service provides authentication, puzzle data, and completion tracking backed by PostgreSQL.
+Express + PostgreSQL API for the KeyPaw application (paired with the `FEKeyMaster` frontend). It supports JWT authentication, puzzle retrieval/validation, and a scoring + badges leaderboard.
 
-Quick highlights
+## Highlights
 
-- Server: Express
-- DB: PostgreSQL (node-postgres Pool) with IPv4 fallback resolution for cloud robustness
-- Auth: bcrypt password hashing and JWT for stateless sessions
+- **Express API** with modular route structure
+- **PostgreSQL** via `pg` Pool (includes IPv4 DNS fallback for cloud environments that lack IPv6 egress)
+- **Auth** using bcrypt password hashing + JWT
+- **Additive migrations** (safe for hosted databases) + deterministic demo seeding for leaderboard testing
 
-API Summary
+## API
 
-- `POST /auth/signup` — { email, password } → { token, user }
-- `POST /auth/login` — { email, password } → { token, user }
-- `GET /puzzles` — list puzzles (Authorization required)
-- `GET /puzzles/:id` — puzzle details (Authorization required)
-- `POST /puzzles/solve` — submit attempt { puzzle_id, attempt } → { success: boolean }
+### Auth
+
+- `POST /auth/signup` — `{ email, password }` → `{ token, user }`
+- `POST /auth/login` — `{ email, password }` → `{ token, user }`
+
+### Puzzles
+
+- `GET /puzzles` — list puzzles (**Authorization required**)
+- `GET /puzzles/:id` — puzzle details (**Authorization required**)
+- `POST /puzzles/solve` — submit attempt `{ puzzle_id, attempt }` → `{ success: boolean }` (**Authorization required**)
 - `POST /puzzles` — disabled (returns 403)
-- `POST /scores` — record a score + (optional) award badge (Authorization required)
+
+Note: `solution_code` is currently returned by puzzle GET endpoints to support existing frontend gameplay logic.
+
+### Scores
+
+- `POST /scores` — record a score and optionally award a badge (**Authorization required**)
 - `GET /scores/leaderboard` — leaderboard (no auth)
 
-Environment
+## Configuration
 
-Create a `BEKeyMaster/.env` (do not commit) with:
+Create `BEKeyMaster/.env` (do not commit):
 
 ```ini
 PORT=3001
 DATABASE_URL=postgres://user:password@host:5432/dbname
 JWT_SECRET=your_jwt_secret_here
-CLIENT_ORIGIN=http://localhost:5173  # frontend origin for CORS
+CLIENT_ORIGIN=http://localhost:5173
 ```
 
-- If your DB is remote (Railway, Supabase) the code will enable SSL automatically unless the URL contains `localhost`.
-- Changes to `.env` require restarting the server process.
+Notes:
 
-Install & run (development)
+- SSL is enabled automatically for non-local databases (anything not `localhost` / `127.0.0.1`).
+- Changes to `.env` require restarting the server.
+
+## Local development
 
 ```bash
 cd BEKeyMaster
 npm ci
-# Run in dev (nodemon) or directly
 npm run dev
-# or
-node server.js
 ```
 
-Database & seeding
+Scripts:
 
-- This backend uses additive SQL migrations (no destructive drops) in `db/`:
-  - `db/001_core.sql` (users, puzzles, completions)
-  - `db/002_scores_badges.sql` (scores, badges, user_badges)
-  - `db/badges.sql` (badge seed rows)
-- Migration runner: `db/run_migrations.js` (runs the files above in order).
-  - Note: it primarily uses `CREATE TABLE IF NOT EXISTS` and will not “upgrade” existing tables unless you add `ALTER TABLE` statements.
-  - It is not called by `npm start` / `npm run dev`; you run it manually (or via your deploy pipeline).
-- Seeding: `db/seed.js`
-  - Puzzles are inserted only if missing (by puzzle name).
-  - Demo leaderboard seed creates 3 demo users (`demo1/2/3@keypaw.dev`) and inserts demo scores/badges.
-  - It keeps re-runs deterministic by deleting ONLY the demo users’ rows in `scores` + `user_badges`.
-  - Don’t run it against production unless you actually want those demo accounts/data.
+- `npm run dev` — run with `nodemon`
+- `npm start` — run with `node server.js`
 
-Local reset (destructive)
+## Database migrations
 
-- `db/local/schema.local.sql` is for local-only full resets (drops tables in FK-safe order). Never run it on hosted databases.
+This backend uses additive SQL migrations in `db/`:
 
-Safe edits
+- `db/001_core.sql` — `users`, `puzzles`, `completions`
+- `db/002_scores_badges.sql` — `scores`, `badges`, `user_badges`
+- `db/badges.sql` — badge seed rows
 
-- To update a prompt without reseeding, update by `id` (or by `name`):
+Run migrations manually (or in your deploy pipeline):
 
-```sql
-UPDATE puzzles
-SET prompt = 'Align all 5 pins to the correct height to unlock the cabinet and get the treat.'
-WHERE id = 9;
+```bash
+node db/run_migrations.js
 ```
 
-Connectivity notes
+Important:
 
-- Some cloud environments lack IPv6 egress. The DB helper resolves hostnames and prefers IPv4 A records when available to avoid `ENETUNREACH` on IPv6-only hosts.
+- The migration runner is **not** invoked by `npm start` / `npm run dev`.
+- The migrations primarily use `CREATE TABLE IF NOT EXISTS` and will not change existing columns unless you add `ALTER TABLE` statements.
 
-CORS & preflight
+## Seeding
 
-- `app.js` configures CORS using `CLIENT_ORIGIN`. Ensure that value exactly matches your frontend origin in dev and production.
-- The server responds to `OPTIONS` requests with 204 to satisfy preflight checks; if you see a mismatch, confirm `CLIENT_ORIGIN` and restart.
+Run seed script:
 
-Troubleshooting & logs
+```bash
+node db/seed.js
+```
 
-- Server logs print configured CORS origin and DB host resolution — check your host or Railway logs for details.
-- Common issues:
-  - `The server does not support SSL connections`: ensure your `DATABASE_URL` points to a server accepting SSL or use a local `localhost` URL for dev.
-  - `ENETUNREACH` to an IPv6 address: see IPv4 fallback note above.
-  - 404 on OPTIONS preflight: confirm `CLIENT_ORIGIN` and that the server has been restarted after env changes.
+What it does:
 
-Security & production notes
+- Inserts puzzles only if missing (by puzzle `name`).
+- Creates demo leaderboard data (3 demo users: `demo1/2/3@keypaw.dev`) with demo scores and badges.
+- Keeps re-runs deterministic by deleting **only** the demo users’ rows in `scores` and `user_badges`.
 
-- Keep `JWT_SECRET` private and rotate regularly for production deployments.
-- Use HTTPS in production and set `CLIENT_ORIGIN` to your deployed frontend origin.
+## Local reset (destructive)
 
-Deployment
+For local-only full resets, use `db/local/schema.local.sql`.
 
-- Railway / Render: set `DATABASE_URL`, `JWT_SECRET`, and `CLIENT_ORIGIN` in the service settings and deploy. Check startup logs for DB pool initialization.
-- Supabase note: merging to GitHub does not automatically apply these SQL migrations to your Supabase database. You must run migrations explicitly (manual run or CI).
+Do not run destructive reset SQL against hosted databases.
 
-Contact & next steps
+## Operational notes
 
-If you want me to implement additional features I can add:
+### Connectivity
 
-- PATCH `/puzzles/:id` (admin-only) to edit prompts via API
-- An admin UI in the frontend for editing prompts
-- A CI job running `npm run type-check` (frontend) and unit tests (if added)
+Some cloud environments lack IPv6 egress. The DB helper resolves the DB hostname and prefers IPv4 A records when present to avoid `ENETUNREACH` errors.
 
-License
+### CORS
 
-MIT — see `LICENSE` in this folder.
+- CORS is configured via `CLIENT_ORIGIN`.
+- Preflight `OPTIONS` requests respond with 204.
+
+## Deployment
+
+- Set `DATABASE_URL`, `JWT_SECRET`, and `CLIENT_ORIGIN` in your hosting provider.
+- Supabase note: merging to GitHub does not automatically apply migrations/seeds to your Supabase database—you must run migrations explicitly (manual or CI).
+
+## License
+
+MIT — see `LICENSE`.
