@@ -8,7 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "node db/run_migrations.js",
     "migrate:local": "NODE_ENV=development node db/run_migrations.js",
-    "migrate:prod": "NODE_ENV=production node db/run_migrations.js"
+    "migrate:prod": "NODE_ENV=production node db/run_migrations.js",
+    "seed": "node db/seed.js",
+    "db:setup": "node db/run_migrations.js && node db/seed.js"
   },
   "repository": {
     "type": "git",

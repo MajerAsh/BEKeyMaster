@@ -7,10 +7,6 @@ const fs = require("fs");
 const path = require("path");
 const db = require("./index");
 
-/* NOTE: Do NOT include or run the destructive `schema.local.sql` here —
- that file is for local development only (it drops tables). Use the
- additive migration files in this folder for deployed environments.*/
-
 /*BEFORE DEBUGGING
 async function runFile(filePath) {
   const sql = fs.readFileSync(filePath, "utf8");
