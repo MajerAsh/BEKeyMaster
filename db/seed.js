@@ -1,14 +1,12 @@
-/*
-Seed notes:
-- Puzzles: idempotent insert-if-missing by `name`.
-- Demo leaderboard data: idempotent by targeting ONLY demo users
-  (demo1/2/3@keypaw.dev) and re-seeding their scores/badges deterministically.
-
-Caveats:
-- If you rename a seeded puzzle in code, seed will insert a new row.
-- If you change prompt/type/solution_code for an existing puzzle name, seed will skip.
-  (We can switch to UPSERT + unique(name) if you want updates.)
-*/
+/**
+ * Seeds baseline puzzles and deterministic demo leaderboard data.
+ *
+ * Idempotency:
+ * - Puzzles: insert if missing by `name` (no updates if the row already exists).
+ * - Demo data: re-seeds ONLY demo users (demo1-3@keypaw.dev) by clearing and re-inserting their scores/badges.
+ *
+ * Note: Renaming a seeded puzzle creates a new row. To support updates, switch to UPSERT + unique(name).
+ */
 
 //Seed puzzle data
 const { Pool } = require("pg");
@@ -20,10 +18,6 @@ const pool = new Pool({
 
 async function seedPuzzles() {
   try {
-    // Seed puzzles without deleting existing rows so we don't lose custom data.
-    // For each puzzle, insert only if a puzzle with the same name does not exist.
-
-    // Example: Pin tumbler puzzle
     const puzzles = [
       {
         name: "Pin Tumbler Lock",
