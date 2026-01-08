@@ -9,7 +9,6 @@ const { Pool } = require("pg");
 const dns = require("dns").promises;
 require("dotenv").config();
 
-/* Local Postgres typically does not support SSL and will return the error if forced */
 const connectionString = process.env.DATABASE_URL;
 
 function shouldUseSsl(url) {
@@ -33,6 +32,8 @@ const poolReady = (async () => {
     return null;
   }
 
+  const ssl = useSsl ? { rejectUnauthorized: false } : false;
+
   try {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
@@ -43,8 +44,7 @@ const poolReady = (async () => {
       const ipv4 = addrs.find((a) => a.family === 4);
 
       if (ipv4) {
-        console.log("Using IPv4 address for DB host:", ipv4.address);
-        poolConfig = {
+        const poolConfig = {
           host: ipv4.address,
           port: parsed.port ? Number(parsed.port) : 5432,
           user: parsed.username || undefined,
@@ -52,45 +52,36 @@ const poolReady = (async () => {
           database: parsed.pathname
             ? parsed.pathname.replace(/^\//, "")
             : undefined,
-          ssl: useSsl ? { rejectUnauthorized: false } : false,
+          ssl,
         };
+
         pool = new Pool(poolConfig);
         return pool;
       }
-      console.log(
-        "No IPv4 address found for DB host; falling back to connectionString"
-      );
     } catch (dnsErr) {
-      console.log(
-        "DNS lookup failed for DB host. Will use default fall back):",
+      console.warn(
+        "DB DNS lookup failed; using connectionString:",
         dnsErr.message
       );
     }
-  } catch (parseErr) {
-    console.log(
-      "Failed to parse DATABASE_URL; falling back to raw connection string"
-    );
+  } catch {
+    console.warn("Invalid DATABASE_URL; using connectionString");
   }
 
-  // Fallback: let pg parse and connect using the raw connection string
-  pool = new Pool({
-    connectionString,
-    ssl: useSsl ? { rejectUnauthorized: false } : false,
-  });
-  
+  // Fallback: let pg handle parsing and connection
+  pool = new Pool({ connectionString, ssl });
   return pool;
 })();
 
-/* Reusable async-safe query helper. Callers can use db.query(text, params)
- it will wait until the pool is ready.*/
+/* Async-safe query helper.
+ * Ensures the connection pool is ready before executing queries*/
 async function query(text, params) {
   const p = await poolReady;
-  if (!p) throw new Error("Database pool not configured");
+  if (!p) throw new Error("Database pool not initialized");
   return p.query(text, params);
 }
 
 module.exports = {
   query,
-  // expose the poolReady promise for diagnostics/tests
   poolReady,
 };
