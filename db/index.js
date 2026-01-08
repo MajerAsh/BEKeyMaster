@@ -1,21 +1,22 @@
-//DB connection
+/**
+ * Database connection helper.
+ * - Builds a pg Pool from DATABASE_URL
+ * - Enables SSL for non-local hosts
+ * - Forces IPv4 when possible to avoid IPv6-only environments
+ */
+
 const { Pool } = require("pg");
 const dns = require("dns").promises;
 require("dotenv").config();
 
-/* Create a connection pool using DATABASE_URL from .env
- Enable SSL only when DATABASE_URL points to a remote host (not localhost).
- Local Postgres typically does not support SSL and will return the error
- "The server does not support SSL connections" if ssl is forced.*/
+/* Local Postgres typically does not support SSL and will return the error if forced */
 const connectionString = process.env.DATABASE_URL;
-//const useSsl = connectionString && !connectionString.includes("localhost");
 let useSsl = false;
 
 if (connectionString) {
   try {
     const { hostname } = new URL(connectionString);
-    const isLocal =
-      hostname === "localhost" || hostname === "127.0.0.1";
+    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
     useSsl = !isLocal;
   } catch {
     // If parsing fails, default to no SSL locally
