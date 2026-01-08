@@ -7,12 +7,6 @@ const fs = require("fs");
 const path = require("path");
 const db = require("./index");
 
-/*BEFORE DEBUGGING
-async function runFile(filePath) {
-  const sql = fs.readFileSync(filePath, "utf8");
-  console.log("Running", filePath);
-  await db.query(sql);
-}*/
 // AFTER/ w debugging
 async function runFile(filePath) {
   const sql = fs.readFileSync(filePath, "utf8");

@@ -58,7 +58,6 @@ async function seedPuzzles() {
         "demo3@keypaw.dev",
       ];
 
-      // Upsert demo users and capture IDs
       const userIds = {};
       for (const email of demoEmails) {
         const r = await pool.query(
@@ -71,7 +70,7 @@ async function seedPuzzles() {
         userIds[email] = r.rows[0].id;
       }
 
-      // Resolve puzzle IDs by name (safer than assuming IDs)
+      //Resolve puzzle IDs by name/ avoid relying on hard-coded IDs
       const pinPuzzle = await pool.query(
         "SELECT id FROM puzzles WHERE name = $1",
         ["Pin Tumbler Lock"]
