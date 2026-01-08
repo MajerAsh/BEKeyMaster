@@ -19,12 +19,10 @@ if (connectionString) {
     const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
     useSsl = !isLocal;
   } catch {
-    // If parsing fails, default to no SSL locally
     useSsl = false;
   }
 }
 
-/* Helper to build a Pool. Some cloud environments don't have IPv6 egress.*/
 let pool;
 const poolReady = (async () => {
   if (!connectionString) {
