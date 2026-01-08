@@ -1,8 +1,7 @@
 -- 001_core.sql
--- Core schema required for a fresh DB.
--- Intentionally non-destructive (no DROP). Safe to run multiple times.
+-- Core schema for a fresh database (idempotent; no DROP statements).
 
--- Users table (auth)
+-- Users 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -13,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS users_email_idx ON users(email);
 
--- Puzzles table
+-- Puzzles 
 CREATE TABLE IF NOT EXISTS puzzles (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -26,7 +25,7 @@ CREATE TABLE IF NOT EXISTS puzzles (
 CREATE INDEX IF NOT EXISTS puzzles_type_idx ON puzzles(type);
 CREATE INDEX IF NOT EXISTS puzzles_created_at_idx ON puzzles(created_at DESC);
 
--- Completions table (tracks solved puzzles per user, only 1x/user)
+-- Completions 
 CREATE TABLE IF NOT EXISTS completions (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
