@@ -24,7 +24,7 @@ async function seedPuzzles() {
         prompt:
           "Align all 5 pins to the correct height to unlock the cabinet and get the treat.",
         type: "pin-tumbler",
-        solution_code: JSON.stringify([40, 30, 50, 20, 60]), //stringified array
+        solution_code: JSON.stringify([40, 30, 50, 20, 60]),
       },
       {
         name: "Dial Lock",
