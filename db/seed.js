@@ -52,8 +52,7 @@ async function seedPuzzles() {
       }
     }
 
-    // --- Demo leaderboard data (3 users + scores + badges) ---
-    // This makes it easy to validate leaderboard sorting and UI rendering.
+    /* --- Demo leaderboard data (3 users + scores + badges) ---*/
     await pool.query("BEGIN");
     try {
       const demoEmails = [
