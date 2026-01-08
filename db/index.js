@@ -35,11 +35,8 @@ const poolReady = (async () => {
   try {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
-    console.log("useSsl:", useSsl);
 
-    /* pool config with explicit host/port/user/password/database to force
-  IPv4 TCP connect. Otherwise fall back to passing the connectionString
-  directly to the Pool.*/
+    // Attempt IPv4 resolution first (some hosts lack IPv6 egress)
     try {
       const addrs = await dns.lookup(hostname, { all: true });
       const ipv4 = addrs.find((a) => a.family === 4);
