@@ -73,7 +73,7 @@ router.post("/solve", authenticateToken, async (req, res) => {
 
     const correct = JSON.parse(result.rows[0].solution_code);
 
-    console.log(`🗝️ User ${user_id} is attempting puzzle ${puzzle_id}`);
+    console.log(`User ${user_id} is attempting puzzle ${puzzle_id}`);
     console.log("Attempt:", attempt);
 
     const match =
