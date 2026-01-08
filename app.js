@@ -7,17 +7,43 @@ require("dotenv").config();
 const app = express();
 
 //middleware
-// Configure CORS to allow requests from the frontend (set CLIENT_ORIGIN in env)
+// Configure CORS to allow requests from the frontend.
+// NOTE: Never use `origin: "*"` together with `credentials: true`.
+const clientOrigins = (process.env.CLIENT_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const enableCredentials = clientOrigins.length > 0;
+
 const corsOptions = {
-  origin: process.env.CLIENT_ORIGIN || "*",
+  origin:
+    clientOrigins.length > 0
+      ? (origin, cb) => {
+          // Allow non-browser requests (no Origin header), e.g., curl/health checks.
+          if (!origin) return cb(null, true);
+
+          if (clientOrigins.includes(origin)) return cb(null, true);
+          return cb(new Error(`CORS blocked origin: ${origin}`));
+        }
+      : "*",
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
+  credentials: enableCredentials,
 };
 app.use(cors(corsOptions));
 
 // Log the configured CLIENT_ORIGIN for debugging in deployed environments
-console.log("CORS configured origin:", process.env.CLIENT_ORIGIN || "*");
+console.log(
+  "CORS configured origins:",
+  clientOrigins.length ? clientOrigins : ["*"]
+);
+if (!enableCredentials) {
+  console.warn(
+    "CORS credentials are disabled because CLIENT_ORIGIN is not set. " +
+      "Set CLIENT_ORIGIN (comma-separated) to enable credentialed requests."
+  );
+}
 
 /* Ensure preflight requests are handled for all routes.
  Some router/path-to-regexp combinations reject patterns like '*' or '/*',
