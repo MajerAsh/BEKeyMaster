@@ -1,16 +1,11 @@
-/*
-Seed notes:
-- Puzzles: idempotent insert-if-missing by `name`.
-- Demo leaderboard data: idempotent by targeting ONLY demo users
-  (demo1/2/3@keypaw.dev) and re-seeding their scores/badges deterministically.
+/* Seeds baseline puzzles and deterministic demo leaderboard data.
+ *
+ * Idempotency:
+ * - Puzzles: insert if missing by `name` (no updates if the row already exists).
+ * - Demo data: re-seeds ONLY demo users (demo1-3@keypaw.dev) by clearing and re-inserting their scores/badges.
+ * Note: Renaming a seeded puzzle creates a new row. To support updates, switch to UPSERT + unique(name).
+ */
 
-Caveats:
-- If you rename a seeded puzzle in code, seed will insert a new row.
-- If you change prompt/type/solution_code for an existing puzzle name, seed will skip.
-  (We can switch to UPSERT + unique(name) if you want updates.)
-*/
-
-//Seed puzzle data
 const { Pool } = require("pg");
 require("dotenv").config();
 
@@ -20,17 +15,14 @@ const pool = new Pool({
 
 async function seedPuzzles() {
   try {
-    // Seed puzzles without deleting existing rows so we don't lose custom data.
-    // For each puzzle, insert only if a puzzle with the same name does not exist.
-
-    // Example: Pin tumbler puzzle
+    // Insert baseline puzzles without deleting existing rows.
     const puzzles = [
       {
         name: "Pin Tumbler Lock",
         prompt:
           "Align all 5 pins to the correct height to unlock the cabinet and get the treat.",
         type: "pin-tumbler",
-        solution_code: JSON.stringify([40, 30, 50, 20, 60]), //stringified array
+        solution_code: JSON.stringify([40, 30, 50, 20, 60]),
       },
       {
         name: "Dial Lock",
@@ -42,7 +34,6 @@ async function seedPuzzles() {
     ];
 
     for (const puzzle of puzzles) {
-      // Check if a puzzle with the same name already exists. If not, insert it.
       const exists = await pool.query(
         `SELECT id FROM puzzles WHERE name = $1`,
         [puzzle.name]
@@ -58,8 +49,7 @@ async function seedPuzzles() {
       }
     }
 
-    // --- Demo leaderboard data (3 users + scores + badges) ---
-    // This makes it easy to validate leaderboard sorting and UI rendering.
+    // Demo leaderboard seed: reset ONLY demo users so local/dev environments stay consistent
     await pool.query("BEGIN");
     try {
       const demoEmails = [
@@ -68,7 +58,6 @@ async function seedPuzzles() {
         "demo3@keypaw.dev",
       ];
 
-      // Upsert demo users and capture IDs
       const userIds = {};
       for (const email of demoEmails) {
         const r = await pool.query(
@@ -81,7 +70,7 @@ async function seedPuzzles() {
         userIds[email] = r.rows[0].id;
       }
 
-      // Resolve puzzle IDs by name (safer than assuming IDs)
+      //Resolve puzzle IDs by name/ avoid relying on hard-coded IDs
       const pinPuzzle = await pool.query(
         "SELECT id FROM puzzles WHERE name = $1",
         ["Pin Tumbler Lock"]
@@ -160,12 +149,12 @@ async function seedPuzzles() {
       console.log("Inserted demo users + scores + badges for leaderboard.");
     } catch (err) {
       await pool.query("ROLLBACK");
-      console.error("😒 Error seeding demo leaderboard data:", err);
+      console.error("Seed failed:", err);
     }
 
     console.log("🍾 Puzzles seeded successfully.");
   } catch (err) {
-    console.error("😒 Error seeding puzzles:", err);
+    console.error("Seed failed:", err);
   } finally {
     await pool.end();
   }
