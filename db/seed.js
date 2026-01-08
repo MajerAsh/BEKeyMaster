@@ -15,6 +15,7 @@ const pool = new Pool({
 
 async function seedPuzzles() {
   try {
+    // Insert baseline puzzles without deleting existing rows.
     const puzzles = [
       {
         name: "Pin Tumbler Lock",
@@ -33,7 +34,6 @@ async function seedPuzzles() {
     ];
 
     for (const puzzle of puzzles) {
-      // Check if same name already exists. If not, insert it.
       const exists = await pool.query(
         `SELECT id FROM puzzles WHERE name = $1`,
         [puzzle.name]
@@ -49,7 +49,7 @@ async function seedPuzzles() {
       }
     }
 
-    /* --- Demo leaderboard data (3 users + scores + badges) ---*/
+    // Demo leaderboard seed: reset ONLY demo users so local/dev environments stay consistent
     await pool.query("BEGIN");
     try {
       const demoEmails = [
