@@ -93,7 +93,7 @@ router.post("/solve", authenticateToken, async (req, res) => {
       console.log(`✅ User ${user_id} successfully solved puzzle ${puzzle_id}`);
       return res.json({ success: true });
     } else {
-      console.warn(`❌ User ${user_id} failed to solve puzzle ${puzzle_id}`);
+      console.warn(`User ${user_id} failed to solve puzzle ${puzzle_id}`);
       return res.json({ success: false });
     }
   } catch (err) {
