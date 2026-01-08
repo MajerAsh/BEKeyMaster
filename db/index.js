@@ -11,26 +11,27 @@ require("dotenv").config();
 
 /* Local Postgres typically does not support SSL and will return the error if forced */
 const connectionString = process.env.DATABASE_URL;
-let useSsl = false;
 
-if (connectionString) {
+function shouldUseSsl(url) {
+  if (!url) return false;
+
   try {
-    const { hostname } = new URL(connectionString);
-    const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
-    useSsl = !isLocal;
+    const { hostname } = new URL(url);
+    return hostname !== "localhost" && hostname !== "127.0.0.1";
   } catch {
-    useSsl = false;
+    return false;
   }
 }
 
+const useSsl = shouldUseSsl(connectionString);
+
 let pool;
+
 const poolReady = (async () => {
   if (!connectionString) {
-    console.log("No DATABASE_URL configured");
+    console.warn("DATABASE_URL not configured");
     return null;
   }
-
-  let poolConfig = { ssl: useSsl ? { rejectUnauthorized: false } : false };
 
   try {
     const parsed = new URL(connectionString);
@@ -40,6 +41,7 @@ const poolReady = (async () => {
     try {
       const addrs = await dns.lookup(hostname, { all: true });
       const ipv4 = addrs.find((a) => a.family === 4);
+
       if (ipv4) {
         console.log("Using IPv4 address for DB host:", ipv4.address);
         poolConfig = {
@@ -60,7 +62,7 @@ const poolReady = (async () => {
       );
     } catch (dnsErr) {
       console.log(
-        "DNS lookup failed for DB host (will fall back):",
+        "DNS lookup failed for DB host. Will use default fall back):",
         dnsErr.message
       );
     }
@@ -75,6 +77,7 @@ const poolReady = (async () => {
     connectionString,
     ssl: useSsl ? { rejectUnauthorized: false } : false,
   });
+  
   return pool;
 })();
 
