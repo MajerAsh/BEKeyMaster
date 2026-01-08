@@ -33,7 +33,7 @@ async function seedPuzzles() {
     ];
 
     for (const puzzle of puzzles) {
-      // Check if a puzzle with the same name already exists. If not, insert it.
+      // Check if same name already exists. If not, insert it.
       const exists = await pool.query(
         `SELECT id FROM puzzles WHERE name = $1`,
         [puzzle.name]
@@ -150,12 +150,12 @@ async function seedPuzzles() {
       console.log("Inserted demo users + scores + badges for leaderboard.");
     } catch (err) {
       await pool.query("ROLLBACK");
-      console.error("😒 Error seeding demo leaderboard data:", err);
+      console.error("Seed failed:", err);
     }
 
     console.log("🍾 Puzzles seeded successfully.");
   } catch (err) {
-    console.error("😒 Error seeding puzzles:", err);
+    console.error("Seed failed:", err);
   } finally {
     await pool.end();
   }
