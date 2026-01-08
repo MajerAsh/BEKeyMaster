@@ -1,14 +1,11 @@
-/**
- * Seeds baseline puzzles and deterministic demo leaderboard data.
+/* Seeds baseline puzzles and deterministic demo leaderboard data.
  *
  * Idempotency:
  * - Puzzles: insert if missing by `name` (no updates if the row already exists).
  * - Demo data: re-seeds ONLY demo users (demo1-3@keypaw.dev) by clearing and re-inserting their scores/badges.
- *
  * Note: Renaming a seeded puzzle creates a new row. To support updates, switch to UPSERT + unique(name).
  */
 
-//Seed puzzle data
 const { Pool } = require("pg");
 require("dotenv").config();
 
