@@ -9,15 +9,18 @@ const SALT_ROUNDS = 10;
 
 // POST /signup
 router.post("/signup", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
 
   try {
     // Check if user already exists
-    const existing = await db.query("SELECT id FROM users WHERE email = $1", [
-      email,
-    ]);
+    const existing = await db.query(
+      "SELECT id FROM users WHERE email = $1 OR username = $2",
+      [email, username]
+    );
     if (existing.rows.length > 0) {
-      return res.status(400).json({ error: "User already exists" });
+      return res
+        .status(400)
+        .json({ error: "Email or username already exists" });
     }
 
     // Hash password
@@ -25,7 +28,7 @@ router.post("/signup", async (req, res) => {
 
     // Insert user
     const result = await db.query(
-      `INSERT INTO users (email, password_hash)
+      `INSERT INTO users (email, username,password_hash)
        VALUES ($1, $2)
        RETURNING id, email`,
       [email, hash]
