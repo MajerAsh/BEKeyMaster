@@ -1,4 +1,4 @@
-/*Note: 
+/*TODO: 
 Can not hide solution_code without redesigning both puzzles:
 PinTumbler uses solutionCode to decide whether pins are “set” (green driver)
 DialLock uses solutionCode for all the click/resistance logic*/
