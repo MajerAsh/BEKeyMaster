@@ -32,11 +32,17 @@ const poolReady = (async () => {
     return null;
   }
 
-  const ssl = useSsl ? { rejectUnauthorized: false } : false;
+  const sslBase = useSsl ? { rejectUnauthorized: false } : false;
 
   try {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
+
+    // Ensure TLS SNI is preserved for hosts that route by servername (e.g., Supabase pooler).
+    // When we connect via a resolved IP, Node would otherwise use the IP as SNI.
+    const sslWithServername = useSsl
+      ? { ...sslBase, servername: hostname }
+      : sslBase;
 
     // Attempt IPv4 resolution first (some hosts lack IPv6 egress)
     try {
@@ -52,7 +58,7 @@ const poolReady = (async () => {
           database: parsed.pathname
             ? parsed.pathname.replace(/^\//, "")
             : undefined,
-          ssl,
+          ssl: sslWithServername,
         };
 
         pool = new Pool(poolConfig);
@@ -69,7 +75,7 @@ const poolReady = (async () => {
   }
 
   // Fallback: let pg handle parsing and connection
-  pool = new Pool({ connectionString, ssl });
+  pool = new Pool({ connectionString, ssl: sslBase });
   return pool;
 })();
 
