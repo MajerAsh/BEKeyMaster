@@ -1,21 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/index");
-const jwt = require("jsonwebtoken");
 const { computeScore } = require("../lib/scoreCalc");
-
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!token) return res.sendStatus(401);
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;
-    return next();
-  } catch (err) {
-    return res.sendStatus(403);
-  }
-}
+const authenticateToken = require("../middleware/authenticateToken");
 
 // POST /scores - record a score, award badge if first score (not necessarily first completion) for that game
 router.post("/", authenticateToken, async (req, res) => {
