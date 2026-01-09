@@ -44,21 +44,8 @@ if (!enableCredentials) {
   );
 }
 
-/* Ensure preflight requests are handled for all routes.
- Some router/path-to-regexp combinations reject patterns like '*' or '/*',
-so using a small middleware that handles OPTIONS requests instead
-of registering a route with a potentially unsupported pattern.*/
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    /* Apply CORS headers, then terminate the preflight with 204 so the
-     request does not fall through to a 404 for OPTIONS requests.*/
-    return cors(corsOptions)(req, res, () => {
-      // cors middleware set the headers; respond to preflight immediately
-      res.sendStatus(204);
-    });
-  }
-  next();
-});
+// Handle CORS preflight requests (avoid '*' path-to-regexp edge cases)
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 //routes:
