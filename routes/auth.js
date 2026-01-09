@@ -7,6 +7,40 @@ const jwt = require("jsonwebtoken");
 
 const SALT_ROUNDS = 10;
 
+function dbErrorResponse(err) {
+  const code = err && err.code;
+
+  // undefined_column
+  if (code === "42703") {
+    return {
+      status: 500,
+      error:
+        "Database schema mismatch (missing column). Run migrations on the production database.",
+    };
+  }
+
+  // undefined_table
+  if (code === "42P01") {
+    return {
+      status: 500,
+      error:
+        "Database schema mismatch (missing table). Run migrations on the production database.",
+    };
+  }
+
+  // unique_violation
+  if (code === "23505") {
+    return { status: 400, error: "Email or username already exists" };
+  }
+
+  // not_null_violation
+  if (code === "23502") {
+    return { status: 400, error: "Missing required fields" };
+  }
+
+  return null;
+}
+
 function normalizeUsername(input) {
   return String(input || "")
     .trim()
@@ -76,7 +110,9 @@ router.post("/signup", async (req, res) => {
       user: { id: user.id, email: user.email, username: user.username },
     });
   } catch (err) {
-    console.error(err);
+    const mapped = dbErrorResponse(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    console.error("Signup failed:", err);
     res.status(500).json({ error: "Signup failed" });
   }
 });
@@ -120,7 +156,9 @@ router.post("/login", async (req, res) => {
       user: { id: user.id, email: user.email, username: user.username },
     });
   } catch (err) {
-    console.error(err);
+    const mapped = dbErrorResponse(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    console.error("Login failed:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
