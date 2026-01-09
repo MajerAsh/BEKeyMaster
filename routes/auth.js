@@ -28,10 +28,10 @@ router.post("/signup", async (req, res) => {
 
     // Insert user
     const result = await db.query(
-      `INSERT INTO users (email, username,password_hash)
-       VALUES ($1, $2)
-       RETURNING id, email`,
-      [email, hash]
+      `INSERT INTO users (email, username, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, email, username`,
+      [email, username, hash]
     );
 
     const user = result.rows[0];
@@ -40,7 +40,10 @@ router.post("/signup", async (req, res) => {
       process.env.JWT_SECRET
     );
 
-    res.json({ token, user: { id: user.id, email: user.email } });
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, username: user.username },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Signup failed" });
@@ -49,12 +52,20 @@ router.post("/signup", async (req, res) => {
 
 // POST /login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  // Prefer a single field for UI: { login, password }
+  // but accept { email, password } or { username, password } for compatibility.
+  const { login, email, username, password } = req.body;
+  const loginValue = String(login || email || username || "").trim();
+
+  if (!loginValue || !password) {
+    return res.status(400).json({ error: "Missing login and/or password" });
+  }
 
   try {
-    const result = await db.query(`SELECT * FROM users WHERE email = $1`, [
-      email,
-    ]);
+    const result = await db.query(
+      `SELECT * FROM users WHERE email = $1 OR username = $1`,
+      [loginValue]
+    );
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -68,11 +79,14 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, username: user.username },
       process.env.JWT_SECRET
     );
 
-    res.json({ token, user: { id: user.id, email: user.email } });
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, username: user.username },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Login failed" });
