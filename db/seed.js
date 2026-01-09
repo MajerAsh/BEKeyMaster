@@ -52,20 +52,23 @@ async function seedPuzzles() {
     // Demo leaderboard seed: reset ONLY demo users so local/dev environments stay consistent
     await pool.query("BEGIN");
     try {
-      const demoEmails = [
-        "demo1@keypaw.dev",
-        "demo2@keypaw.dev",
-        "demo3@keypaw.dev",
+      const demoUsers = [
+        { email: "demo1@keypaw.dev", username: "mittens" },
+        { email: "demo2@keypaw.dev", username: "fluffy" },
+        { email: "demo3@keypaw.dev", username: "boots" },
       ];
 
       const userIds = {};
-      for (const email of demoEmails) {
+      for (const { email, username } of demoUsers) {
         const r = await pool.query(
-          `INSERT INTO users (email, password_hash)
-           VALUES ($1, 'not-a-real-hash')
-           ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+          `INSERT INTO users (email, username, password_hash)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (email) DO UPDATE SET
+             email = EXCLUDED.email,
+             username = EXCLUDED.username,
+             password_hash = EXCLUDED.password_hash
            RETURNING id`,
-          [email]
+          [email, username, "not-a-real-hash"]
         );
         userIds[email] = r.rows[0].id;
       }
@@ -83,7 +86,7 @@ async function seedPuzzles() {
       const dialPuzzleId = dialPuzzle.rowCount ? dialPuzzle.rows[0].id : null;
 
       // Clear previous demo scores/badges (keeps seed idempotent)
-      const demoUserIdList = demoEmails.map((e) => userIds[e]);
+      const demoUserIdList = demoUsers.map((u) => userIds[u.email]);
       await pool.query(
         "DELETE FROM user_badges WHERE user_id = ANY($1::int[])",
         [demoUserIdList]

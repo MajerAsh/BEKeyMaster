@@ -145,7 +145,7 @@ router.get("/leaderboard", async (req, res) => {
   const q = `
     SELECT
       u.id AS user_id,
-      COALESCE(u.email, '') AS username,
+      COALESCE(u.username, u.email, '') AS username,
       COALESCE(sp.dial_points, 0) AS dial_points,
       COALESCE(sp.pin_points, 0) AS pin_points,
       COALESCE(sp.score_points, 0) AS score_points,
