@@ -61,7 +61,7 @@ async function seedPuzzles() {
       const userIds = {};
       for (const email of demoEmails) {
         const r = await pool.query(
-          `INSERT INTO users (email, password_hash)
+          `INSERT INTO users (email, username, password_hash)
            VALUES ($1, 'not-a-real-hash')
            ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
            RETURNING id`,
