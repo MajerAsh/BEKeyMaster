@@ -5,7 +5,7 @@ ADD COLUMN IF NOT EXISTS username TEXT;
 -- For now, keep it nullable until you update existing rows.
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
 
--- Optional: once you've backfilled ALL existing users, you can enforce NOT NULL.
+-- Optional: once ALL existing users backfilled, can enforce NOT NULL.
 -- This block is SAFE to keep in the migration: it only applies the constraint
 -- if there are currently zero users with username IS NULL.
 DO $$
