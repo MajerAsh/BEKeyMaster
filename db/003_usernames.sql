@@ -5,5 +5,12 @@ ADD COLUMN IF NOT EXISTS username TEXT;
 -- For now, keep it nullable until you update existing rows.
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username);
 
--- After backfill, can enforce:
--- ALTER TABLE users ALTER COLUMN username SET NOT NULL;
+-- Optional: once you've backfilled ALL existing users, you can enforce NOT NULL.
+-- This block is SAFE to keep in the migration: it only applies the constraint
+-- if there are currently zero users with username IS NULL.
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM users WHERE username IS NULL) THEN
+		ALTER TABLE users ALTER COLUMN username SET NOT NULL;
+	END IF;
+END $$;

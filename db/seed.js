@@ -53,9 +53,9 @@ async function seedPuzzles() {
     await pool.query("BEGIN");
     try {
       const demoUsers = [
-        { email: "demo1@keypaw.dev", username: "Mittens" },
-        { email: "demo2@keypaw.dev", username: "Fluffy" },
-        { email: "demo3@keypaw.dev", username: "Boots" },
+        { email: "demo1@keypaw.dev", username: "mittens" },
+        { email: "demo2@keypaw.dev", username: "fluffy" },
+        { email: "demo3@keypaw.dev", username: "boots" },
       ];
 
       const userIds = {};

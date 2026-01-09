@@ -30,6 +30,7 @@ async function run() {
     const files = [
       path.join(base, "001_core.sql"),
       path.join(base, "002_scores_badges.sql"),
+      path.join(base, "003_usernames.sql"),
       path.join(base, "badges.sql"),
     ];
 
