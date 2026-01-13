@@ -155,7 +155,7 @@ async function seedPuzzles() {
       console.error("Seed failed:", err);
     }
 
-    console.log("🍾 Puzzles seeded successfully.");
+    console.log("Puzzles seeded successfully.");
   } catch (err) {
     console.error("Seed failed:", err);
   } finally {
