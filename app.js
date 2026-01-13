@@ -33,7 +33,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Preflight support (regex avoids '*' matcher quirks in some setups)
+// Preflight support
 app.options(/.*/, cors(corsOptions));
 
 if (process.env.NODE_ENV !== "test") {
