@@ -38,13 +38,13 @@ const poolReady = (async () => {
     const parsed = new URL(connectionString);
     const hostname = parsed.hostname;
 
-    // Ensure TLS SNI is preserved for hosts that route by servername (e.g., Supabase pooler).
+    // Ensure TLS SNI is preserved for hosts that route by servername (like Supabase pooler)
     // When we connect via a resolved IP, Node would otherwise use the IP as SNI.
     const sslWithServername = useSsl
       ? { ...sslBase, servername: hostname }
       : sslBase;
 
-    // Attempt IPv4 resolution first (some hosts lack IPv6 egress)
+    // Attempt IPv4 resolution first for hosts that have IPv6 disabled
     try {
       const addrs = await dns.lookup(hostname, { all: true });
       const ipv4 = addrs.find((a) => a.family === 4);
@@ -79,8 +79,7 @@ const poolReady = (async () => {
   return pool;
 })();
 
-/* Async-safe query helper.
- * Ensures the connection pool is ready before executing queries*/
+// Async-safe query helper
 async function query(text, params) {
   const p = await poolReady;
   if (!p) throw new Error("Database pool not initialized");
