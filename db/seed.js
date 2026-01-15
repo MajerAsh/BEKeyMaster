@@ -49,7 +49,7 @@ async function seedPuzzles() {
       }
     }
 
-    // Demo leaderboard seed: reset ONLY demo users so local/dev environments stay consistent
+    // Demo leaderboard seed: reset only demo users
     await pool.query("BEGIN");
     try {
       const demoUsers = [
