@@ -24,13 +24,13 @@ const PORT = process.env.PORT || 3001;
   } catch (err) {
     console.warn(
       "DB pool initialization failed or timed out:",
-      err && err.message ? err.message : err
+      err && err.message ? err.message : err,
     );
     /* Proceed to start the server so health checks can run; DB errors
     will show when requests hit database-dependent routes.*/
   }
 
   app.listen(PORT, () => {
-    console.log(`📞 Server listening on port ${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
   });
 })();
