@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 3001;
 
 (async () => {
   try {
-    /* Wait for the DB pool to be ready.*/
     await db.poolReady;
     console.log("DB pool initialized, starting server");
   } catch (err) {
@@ -22,8 +21,6 @@ const PORT = process.env.PORT || 3001;
       "DB pool initialization failed or timed out:",
       err && err.message ? err.message : err,
     );
-    /* Proceed to start the server so health checks can run; DB errors
-    will show when requests hit database-dependent routes.*/
   }
 
   app.listen(PORT, () => {
