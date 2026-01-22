@@ -1,4 +1,3 @@
-// Start server
 require("dotenv").config();
 
 if (!process.env.JWT_SECRET) {
