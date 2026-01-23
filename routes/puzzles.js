@@ -87,11 +87,5 @@ router.post("/solve", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Error solving puzzle" });
   }
 });
-// POST /puzzles - Create a new puzzle (disabled)
-router.post("/", authenticateToken, async (req, res) => {
-  return res.status(403).json({
-    error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
-  });
-});
 
 module.exports = router;
