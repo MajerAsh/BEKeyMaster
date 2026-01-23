@@ -13,7 +13,7 @@ const authenticateToken = require("../middleware/authenticateToken");
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name, prompt, type, solution_code FROM puzzles ORDER BY id`
+      `SELECT id, name, prompt, type, solution_code FROM puzzles ORDER BY id`,
     );
     res.json(result.rows);
   } catch (err) {
@@ -29,7 +29,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
       `SELECT id, name, prompt, type, solution_code FROM puzzles WHERE id = $1`,
-      [id]
+      [id],
     );
 
     if (result.rowCount === 0) {
@@ -51,7 +51,7 @@ router.post("/solve", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
       `SELECT solution_code FROM puzzles WHERE id = $1`,
-      [puzzle_id]
+      [puzzle_id],
     );
 
     if (result.rowCount === 0) {
@@ -69,15 +69,14 @@ router.post("/solve", authenticateToken, async (req, res) => {
       attempt.every((val, i) => Math.abs(val - correct[i]) <= 2);
 
     if (match) {
-      // Save to completions table if not already completed
       await db.query(
         `INSERT INTO completions (user_id, puzzle_id)
          VALUES ($1, $2)
          ON CONFLICT DO NOTHING`,
-        [user_id, puzzle_id]
+        [user_id, puzzle_id],
       );
 
-      console.log(`✅ User ${user_id} successfully solved puzzle ${puzzle_id}`);
+      console.log(`User ${user_id} successfully solved puzzle ${puzzle_id}`);
       return res.json({ success: true });
     } else {
       console.warn(`User ${user_id} failed to solve puzzle ${puzzle_id}`);
@@ -88,8 +87,7 @@ router.post("/solve", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Error solving puzzle" });
   }
 });
-
-// Puzzle creation via API is disabled to prevent accidental data loss or leaking solutions.
+// POST /puzzles - Create a new puzzle (disabled)
 router.post("/", authenticateToken, async (req, res) => {
   return res.status(403).json({
     error: "Puzzle creation disabled. Manage puzzles via seeds/migrations.",
