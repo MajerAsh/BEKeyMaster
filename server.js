@@ -15,7 +15,7 @@ const db = require("./db/index");
 const PORT = Number(process.env.PORT) || 3001;
 
 /* Establish pool to reduce latency */
-(async () => {
+async function start() {
   try {
     await db.poolReady;
     console.log("DB pool initialized, starting server");
@@ -29,4 +29,9 @@ const PORT = Number(process.env.PORT) || 3001;
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
-})();
+}
+
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
