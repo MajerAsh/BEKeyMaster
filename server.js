@@ -1,8 +1,10 @@
 require("dotenv").config();
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET is not set");
+function requireEnv(name) {
+  if (!process.env[name]) throw new Error(`${name} is not set`);
 }
+
+requireEnv("JWT_SECRET");
 
 if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
@@ -10,10 +12,10 @@ if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
 
 const app = require("./app");
 const db = require("./db/index");
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 /* Establish pool to reduce latency */
-(async () => {
+async function start() {
   try {
     await db.poolReady;
     console.log("DB pool initialized, starting server");
@@ -27,4 +29,9 @@ const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
-})();
+}
+
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
