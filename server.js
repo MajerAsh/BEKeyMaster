@@ -12,7 +12,7 @@ if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
 
 const app = require("./app");
 const db = require("./db/index");
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 /* Establish pool to reduce latency */
 (async () => {
