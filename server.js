@@ -13,6 +13,7 @@ if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
 const app = require("./app");
 const db = require("./db/index");
 const PORT = Number(process.env.PORT) || 3001;
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 /* Establish pool to reduce latency */
 async function start() {
@@ -20,14 +21,19 @@ async function start() {
     await db.poolReady;
     console.log("DB pool initialized, starting server");
   } catch (err) {
-    console.warn(
-      "DB pool initialization failed or timed out:",
-      err && err.message ? err.message : err,
-    );
+    console.warn("DB not ready at startup; continuing:", err?.message || err);
   }
 
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  const server = app.listen(PORT, () => {
+    console.log(`API listening on port ${PORT} (${NODE_ENV})`);
+  });
+
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM received, closing server...");
+    server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+    });
   });
 }
 
